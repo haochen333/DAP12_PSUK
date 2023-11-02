@@ -5,4 +5,101 @@
 
 # by hao chen
 #################################################################################
+library(ggplot2)
+library(RColorBrewer)
+library(scales)
+library(ggrepel)
+library(tidyr)
+library(reshape2)
+library(dplyr)
+library(ComplexHeatmap)
+library(circlize)
+setwd("/Users/haochen/desktop/")
+#IPA pathway analysis
+GSEA_dn <- read.csv("Figure2A_Bulkseq_tau+_vs_tau-DEGsFC_0.1_IPAtemplate.csv",header=T)
+#GSEA_dn <- GSEA_dn[,-1]
+colnames(GSEA_dn)[1] <- c("Name")
+#GSEA_dn$FDR <- as.numeric(GSEA_dn$FDR)
+GSEA_dn <- GSEA_dn[GSEA_dn$X.log.p.value.>0,] #447 pathways
+GSEA_dn$logP <- GSEA_dn$X.log.p.value. 
+GSEA_dn$enrich <- paste(GSEA_dn$k, "/", GSEA_dn$K, sep=" ")
+#GSEA_dn <- GSEA_dn[order(-GSEA_dn$logP),]
+#GSEA_dn$Name <-  gsub("GO_", "", GSEA_dn$name)
+#GSEA_dn$Name <- gsub("*_", " ", GSEA_dn$Name)
+GSEA_dn$NES <- GSEA_dn$zScore
+GSEA_dn$threshold <- c("NC")
+GSEA_dn$threshold [GSEA_dn$NES > 0 ] <- c("UP")
+GSEA_dn$threshold [GSEA_dn$NES < 0 ] <- c("DOWN")
+#marker$colours[marker$log2FoldChange >= 0.2 & marker$padj <= 0.1] <- c("UP")
+GSEA_dn$Name <-  factor(GSEA_dn$Name, levels=rev(GSEA_dn$Name))
+neg <- GSEA_dn[order(GSEA_dn$z.score)[1:10],]
+pos <- GSEA_dn [GSEA_dn$z.score>0,]
+pos <- pos[order(pos$X.log.p.value., decreasing = TRUE)[1:10],]
 
+GSEA_dn <- rbind(neg,pos)
+GSEA_dn <- pos
+GSEA_dn <- GSEA_dn %>% arrange(threshold,logP) %>% mutate(Name=factor(Name, levels=Name))
+GSEA_dn<-head(GSEA_dn,10)
+
+
+#IPA pathway analysis corrected by dap12ko
+GSEA_dn <- read.csv("dap12ko_vs_wt_ipa.csv",header=T) # 547obs
+head(GSEA_dn)
+#GSEA_dn <- GSEA_dn[,-1]
+colnames(GSEA_dn)[1] <- c("Name")
+#GSEA_dn$FDR <- as.numeric(GSEA_dn$FDR)
+GSEA_dn <- GSEA_dn[GSEA_dn$X.log.p.value.>0,] #433 pathways
+GSEA_dn$logP <- GSEA_dn$X.log.p.value. 
+GSEA_dn$enrich <- paste(GSEA_dn$k, "/", GSEA_dn$K, sep=" ")
+#GSEA_dn <- GSEA_dn[order(-GSEA_dn$logP),]
+#GSEA_dn$Name <-  gsub("GO_", "", GSEA_dn$name)
+#GSEA_dn$Name <- gsub("*_", " ", GSEA_dn$Name)
+GSEA_dn$NES <- GSEA_dn$z.score
+GSEA_dn$threshold <- c("NC")
+GSEA_dn$threshold [GSEA_dn$NES > 0 ] <- c("UP")
+GSEA_dn$threshold [GSEA_dn$NES < 0 ] <- c("DOWN")
+#marker$colours[marker$log2FoldChange >= 0.2 & marker$padj <= 0.1] <- c("UP")
+GSEA_dn$Name <-  factor(GSEA_dn$Name, levels=rev(GSEA_dn$Name))
+neg <- GSEA_dn[order(GSEA_dn$NES)[1:10],]
+neg <- GSEA_dn [GSEA_dn$NES<0,]
+neg <- neg[order(neg$X.log.p.value., decreasing = TRUE)[1:10],]
+neg <- GSEA_dn [GSEA_dn$NES>1.4,]#242 pathways
+#choosing pathway
+head(neg)
+#pos <- GSEA_dn[GSEA_dn$Name %in% c('Pathogen Induced Cytokine Storm Signaling Pathway','TREM1 Signaling','VDR/RXR Activation', 'Apoptosis Signaling', 'Activation of IRF by Cytosolic Pattern Recognition Receptors', 'Complement System',  'Interferon Signaling'),]
+pos <- GSEA_dn [GSEA_dn$NES>0,] # 147obs
+pos <- pos[order(pos$NES, decreasing = TRUE)[1:20],]
+neg <- neg[order(neg$NES, decreasing = FALSE)[1:20],]
+neg <- na.omit(neg) 
+neg <- neg[!neg$NES == "#NUM!",] #53 obs
+
+neg$NES[3]
+plot <- rbind(neg,pos)
+GSEA_dn <- neg
+GSEA_dn <- GSEA_dn %>% arrange(threshold,logP) %>% mutate(Name=factor(Name, levels=Name))
+GSEA_dn<-head(GSEA_dn,10)
+neg <- as.data.frame(neg)
+neg$NES <- as.numeric(neg$NES)
+class(neg$NES)
+neg$enrich <- as.numeric(neg$enrich) 
+plot$NES <- as.numeric(plot$NES)
+
+pdf("DAP12KO_VS_WT_IPA_sortbyzscore.pdf", width=14, height=6)
+ggplot(data = plot, aes(x = reorder(Name,NES) , y = NES), fill = direction) +
+  theme_classic() +
+  ylab("Zscore") + xlab(NULL) +
+  geom_bar(stat="Identity",  width=0.8, fill="#D6231A", alpha=1, color = "black" ) +
+  #geom_col(aes(fill = enrichmentScore), color = 'black', lwd = 0.3) + 
+  #scale_fill_gradient2(low = "blue",
+          #             high = "red",
+           #            mid = "white",
+            #           guide = guide_colorbar(frame.colour = "black", frame.linewidth = 0.8)) +
+  coord_flip() +
+  geom_text(aes(label=enrich), vjust=0.4, 
+            hjust=0, size=5, color="black", 
+            stat="Identity", y= plot$NES + c(1)) +
+  theme(aspect.ratio = 0.8) +  
+  ggtitle("DAP12KO_VS_WT") + 
+  theme(plot.title = element_text(hjust = 0.5), axis.text.x = element_text(colour = "black", size=12), axis.text.y = element_text(colour = "black", size=12)) + #changing Y and x Axis 
+  geom_hline(yintercept=c(1),lty=4,col="black",lwd=0.5) 
+dev.off()
