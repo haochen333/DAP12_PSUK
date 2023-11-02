@@ -5,3 +5,48 @@
 
 # by hao chen
 #################################################################################
+library(dplyr)
+ipa <- read.csv(file='OPC1_upstream_regulator.csv', header = T , row.names = 1)
+ipa$Upstream.Regulator <- rownames(ipa)
+class(ipa$Activation.z.score)
+ipa2 <- ipa %>% filter(ipa$Activation.z.score > 2 | ipa$Activation.z.score < -2 )
+head(ipa2)
+#remove NA
+ipa2 <- ipa2[ipa$Activation.z.score>0|ipa$Activation.z.score<0,]
+#bubble plot
+pdf(file="/Users/haochen/Desktop/OPC2_upstream_regulator.pdf",width = 8, height = 4)
+ggplot(data=ipa2, aes(x=reorder(Upstream.Regulator,-log(p.value.of.overlap)), y= -log(p.value.of.overlap), label=round(Activation.z.score, digits=1))) +
+  geom_point(stat='identity', aes(col=Predicted.Activation.State, size=abs(Activation.z.score)))  +
+  scale_size_continuous(range = c(5, 8))+
+  scale_color_manual(name="Predicted Activation State",
+                     labels = c("Activated", "Inhibited"),
+                     values = c("Activated"="red", "Inhibited"="blue")) +
+  geom_text(color="white", size=2.5) +
+  facet_wrap(~Predicted.Activation.State, scales='free_y',ncol=2 )+
+  labs(title="Microglia Upstream Regulator") +
+  theme_bw()+
+  theme(axis.text.y = element_text(size = 10))+
+  coord_flip()
+dev.off()
+
+#opc2
+ipa <- read.csv(file='OPC2_upstream_regulator.csv', header = T , row.names = 1)
+ipa$Upstream.Regulator <- rownames(ipa)
+#remove NA
+ipa2 <- ipa %>%  filter(ipa$Activation.z.score >2 | ipa$Activation.z.score < -2  )
+
+#bubble plot
+pdf(file="/Users/haochen/Desktop/OPC2_upstream_regulator.pdf",width = 8, height = 4)
+ggplot(data=ipa2, aes(x=reorder(Upstream.Regulator,-log(p.value.of.overlap)), y= -log(p.value.of.overlap), label=round(Activation.z.score, digits=1))) +
+  geom_point(stat='identity', aes(col=Predicted.Activation.State, size=abs(Activation.z.score)))  +
+  scale_size_continuous(range = c(5, 8))+
+  scale_color_manual(name="Predicted Activation State",
+                     labels = c("Activated", "Inhibited"),
+                     values = c("Activated"="red", "Inhibited"="blue")) +
+  geom_text(color="white", size=2.5) +
+  facet_wrap(~Predicted.Activation.State, scales='free_y',ncol=2 )+
+  labs(title="Microglia Upstream Regulator") +
+  theme_bw()+
+  theme(axis.text.y = element_text(size = 10))+
+  coord_flip()
+dev.off()
